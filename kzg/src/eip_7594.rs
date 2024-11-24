@@ -183,23 +183,23 @@ fn compute_fk20_proofs<
     let mut h = vec![TG1::identity(); k2];
     g1_ifft(&mut h, &h_ext_fft, s.get_fft_settings())?;
 
-    // cfg_iter_mut!(h).take(k2).skip(k).for_each(|h_elem| {
-    //     *h_elem = TG1::identity();
-    // });
+    cfg_iter_mut!(h).take(k2).skip(k).for_each(|h_elem| {
+        *h_elem = TG1::identity();
+    });
 
-    #[cfg(feature = "parallel")]
-    {
-        h.par_iter_mut().take(k2).skip(k).for_each(|h_elem| {
-            *h_elem = TG1::identity();
-        });
-    }
+    // #[cfg(feature = "parallel")]
+    // {
+    //     h.par_iter_mut().take(k2).skip(k).for_each(|h_elem| {
+    //         *h_elem = TG1::identity();
+    //     });
+    // }
 
-    #[cfg(not(feature = "parallel"))]
-    {
-        for h_elem in h.iter_mut().take(k2).skip(k) {
-            *h_elem = TG1::identity();
-        }
-    }
+    // #[cfg(not(feature = "parallel"))]
+    // {
+    //     for h_elem in h.iter_mut().take(k2).skip(k) {
+    //         *h_elem = TG1::identity();
+    //     }
+    // }
 
 
     g1_fft(proofs, &h, s.get_fft_settings())?;
