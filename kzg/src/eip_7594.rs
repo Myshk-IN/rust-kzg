@@ -655,9 +655,16 @@ fn compute_weighted_sum_of_commitments<
         //         commitment_weights[i] = commitment_weights[i].add(&weight);
         //     }
         // }
+        let num_threads = match std::thread::available_parallelism() {
+            Ok(threads) => threads.get(),
+            Err(_) => 1, 
+        };
+    
+        let chunk_size = r_powers.len() / num_threads;
+
         let intermediate_weights: Vec<_> = r_powers
-        .par_chunks(64) 
-        .zip(commitment_indices.par_chunks(64))
+        .par_chunks(chunk_size) 
+        .zip(commitment_indices.par_chunks(chunk_size))
         .map(|(r_chunk, idx_chunk)| {
             let mut local_weights = vec![TFr::zero(); commitments.len()];
             for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
