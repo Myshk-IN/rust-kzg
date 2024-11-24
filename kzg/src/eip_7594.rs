@@ -638,47 +638,50 @@ fn compute_weighted_sum_of_commitments<
 
     #[cfg(feature = "parallel")]
     {
-        // let intermediate_weights: Vec<_> = r_powers
-        //     .par_chunks(r_powers.len() / rayon::current_num_threads()) 
-        //     .zip(commitment_indices.par_chunks(r_powers.len() / rayon::current_num_threads()))
-        //     .map(|(r_chunk, idx_chunk)| {
-        //         let mut local_weights = vec![TFr::zero(); commitments.len()];
-        //         for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
-        //             local_weights[index] = local_weights[index].add(r_power);
-        //         }
-        //         local_weights
-        //     })
-        //     .collect();
-
-        // for local_weights in intermediate_weights {
-        //     for (i, weight) in local_weights.into_iter().enumerate() {
-        //         commitment_weights[i] = commitment_weights[i].add(&weight);
-        //     }
-        // }
-        let num_threads = match std::thread::available_parallelism() {
-            Ok(threads) => threads.get(),
-            Err(_) => 1, 
-        };
-    
+        let num_threads = rayon::current_num_threads();
         let chunk_size = (r_powers.len()+num_threads-1) / num_threads;
 
         let intermediate_weights: Vec<_> = r_powers
-        .par_chunks(chunk_size) 
-        .zip(commitment_indices.par_chunks(chunk_size))
-        .map(|(r_chunk, idx_chunk)| {
-            let mut local_weights = vec![TFr::zero(); commitments.len()];
-            for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
-                local_weights[index] = local_weights[index].add(r_power);
-            }
-            local_weights
-        })
-        .collect();
+            .par_chunks(chunk_size) 
+            .zip(commitment_indices.par_chunks(chunk_size))
+            .map(|(r_chunk, idx_chunk)| {
+                let mut local_weights = vec![TFr::zero(); commitments.len()];
+                for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
+                    local_weights[index] = local_weights[index].add(r_power);
+                }
+                local_weights
+            })
+            .collect();
 
-    for local_weights in intermediate_weights {
-        for (i, weight) in local_weights.into_iter().enumerate() {
-            commitment_weights[i] = commitment_weights[i].add(&weight);
+        for local_weights in intermediate_weights {
+            for (i, weight) in local_weights.into_iter().enumerate() {
+                commitment_weights[i] = commitment_weights[i].add(&weight);
+            }
         }
-    }
+    //     let num_threads = match std::thread::available_parallelism() {
+    //         Ok(threads) => threads.get(),
+    //         Err(_) => 1, 
+    //     };
+    
+    //     let chunk_size = (r_powers.len()+num_threads-1) / num_threads;
+
+    //     let intermediate_weights: Vec<_> = r_powers
+    //     .par_chunks(chunk_size) 
+    //     .zip(commitment_indices.par_chunks(chunk_size))
+    //     .map(|(r_chunk, idx_chunk)| {
+    //         let mut local_weights = vec![TFr::zero(); commitments.len()];
+    //         for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
+    //             local_weights[index] = local_weights[index].add(r_power);
+    //         }
+    //         local_weights
+    //     })
+    //     .collect();
+
+    // for local_weights in intermediate_weights {
+    //     for (i, weight) in local_weights.into_iter().enumerate() {
+    //         commitment_weights[i] = commitment_weights[i].add(&weight);
+    //     }
+    // }
     }
 
     #[cfg(not(feature = "parallel"))]
