@@ -183,23 +183,23 @@ fn compute_fk20_proofs<
     let mut h = vec![TG1::identity(); k2];
     g1_ifft(&mut h, &h_ext_fft, s.get_fft_settings())?;
 
-    // cfg_iter_mut!(h).take(k2).skip(k).for_each(|h_elem| {
-    //     *h_elem = TG1::identity();
-    // });
+    cfg_iter_mut!(h).take(k2).skip(k).for_each(|h_elem| {
+        *h_elem = TG1::identity();
+    });
 
-    #[cfg(feature = "parallel")]
-    {
-        h.par_iter_mut().take(k2).skip(k).for_each(|h_elem| {
-            *h_elem = TG1::identity();
-        });
-    }
+    // #[cfg(feature = "parallel")]
+    // {
+    //     h.par_iter_mut().take(k2).skip(k).for_each(|h_elem| {
+    //         *h_elem = TG1::identity();
+    //     });
+    // }
 
-    #[cfg(not(feature = "parallel"))]
-    {
-        for h_elem in h.iter_mut().take(k2).skip(k) {
-            *h_elem = TG1::identity();
-        }
-    }
+    // #[cfg(not(feature = "parallel"))]
+    // {
+    //     for h_elem in h.iter_mut().take(k2).skip(k) {
+    //         *h_elem = TG1::identity();
+    //     }
+    // }
 
 
     g1_fft(proofs, &h, s.get_fft_settings())?;
@@ -638,23 +638,40 @@ fn compute_weighted_sum_of_commitments<
 
     #[cfg(feature = "parallel")]
     {
-        let intermediate_weights: Vec<_> = r_powers
-            .par_chunks(r_powers.len() / rayon::current_num_threads()) 
-            .zip(commitment_indices.par_chunks(r_powers.len() / rayon::current_num_threads()))
-            .map(|(r_chunk, idx_chunk)| {
-                let mut local_weights = vec![TFr::zero(); commitments.len()];
-                for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
-                    local_weights[index] = local_weights[index].add(r_power);
-                }
-                local_weights
-            })
-            .collect();
+        // let intermediate_weights: Vec<_> = r_powers
+        //     .par_chunks(r_powers.len() / rayon::current_num_threads()) 
+        //     .zip(commitment_indices.par_chunks(r_powers.len() / rayon::current_num_threads()))
+        //     .map(|(r_chunk, idx_chunk)| {
+        //         let mut local_weights = vec![TFr::zero(); commitments.len()];
+        //         for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
+        //             local_weights[index] = local_weights[index].add(r_power);
+        //         }
+        //         local_weights
+        //     })
+        //     .collect();
 
-        for local_weights in intermediate_weights {
-            for (i, weight) in local_weights.into_iter().enumerate() {
-                commitment_weights[i] = commitment_weights[i].add(&weight);
+        // for local_weights in intermediate_weights {
+        //     for (i, weight) in local_weights.into_iter().enumerate() {
+        //         commitment_weights[i] = commitment_weights[i].add(&weight);
+        //     }
+        // }
+        let intermediate_weights: Vec<_> = r_powers
+        .par_chunks(r_powers.len() / 64) 
+        .zip(commitment_indices.par_chunks(r_powers.len() / 64))
+        .map(|(r_chunk, idx_chunk)| {
+            let mut local_weights = vec![TFr::zero(); commitments.len()];
+            for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
+                local_weights[index] = local_weights[index].add(r_power);
             }
+            local_weights
+        })
+        .collect();
+
+    for local_weights in intermediate_weights {
+        for (i, weight) in local_weights.into_iter().enumerate() {
+            commitment_weights[i] = commitment_weights[i].add(&weight);
         }
+    }
     }
 
     #[cfg(not(feature = "parallel"))]
