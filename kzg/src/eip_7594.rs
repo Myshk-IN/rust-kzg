@@ -660,7 +660,7 @@ fn compute_weighted_sum_of_commitments<
             Err(_) => 1, 
         };
     
-        let chunk_size = r_powers.len() / num_threads;
+        let chunk_size = (r_powers.len()+num_threads-1) / num_threads;
 
         let intermediate_weights: Vec<_> = r_powers
         .par_chunks(chunk_size) 
