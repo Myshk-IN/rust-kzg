@@ -656,8 +656,8 @@ fn compute_weighted_sum_of_commitments<
         //     }
         // }
         let intermediate_weights: Vec<_> = r_powers
-        .par_chunks(r_powers.len() / 64) 
-        .zip(commitment_indices.par_chunks(r_powers.len() / 64))
+        .par_chunks(64) 
+        .zip(commitment_indices.par_chunks(64))
         .map(|(r_chunk, idx_chunk)| {
             let mut local_weights = vec![TFr::zero(); commitments.len()];
             for (r_power, &index) in r_chunk.iter().zip(idx_chunk.iter()) {
